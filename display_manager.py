@@ -79,10 +79,9 @@ class DisplayManager:
         """
         Draw the complete layout on the framebuffer
         
-        Layout:
-        - Top: Location and date
-        - Center: Large moon phase graphic
-        - Bottom: Phase name, illumination, rise/set times
+        Layout (400x300 pixels):
+        - Left half (0-200): Text information
+        - Right half (200-400): Large centered moon graphic
         """
         import time
         
@@ -97,19 +96,35 @@ class DisplayManager:
         date_str = f"{current_time[1]:02d}/{current_time[2]:02d}/{current_time[0]}"
         time_str = f"{current_time[3]:02d}:{current_time[4]:02d}"
         
-        # Draw header (location and date)
-        self._draw_text(fb, location_name, 10, 10, 2)
-        self._draw_text(fb, date_str + " " + time_str, 10, 35, 1)
+        # LEFT SIDE: Text information
+        left_x = 10
         
-        # Draw large moon phase graphic in center
-        moon_y = 80
-        self._draw_moon_phase_graphic(fb, phase_name, 200, moon_y)
+        # Location at top
+        self._draw_text(fb, location_name, left_x, 10, 1)
         
-        # Draw phase information at bottom
-        info_y = 220
-        self._draw_text(fb, phase_name, 10, info_y, 2)
-        self._draw_text(fb, f"Illumination: {illumination:.1f}%", 10, info_y + 30, 1)
-        self._draw_text(fb, f"Rise: {moonrise}  Set: {moonset}", 10, info_y + 50, 1)
+        # Date and time
+        self._draw_text(fb, date_str, left_x, 30, 1)
+        self._draw_text(fb, time_str, left_x, 45, 1)
+        
+        # Moon phase information
+        self._draw_text(fb, "Phase:", left_x, 80, 1)
+        self._draw_text(fb, phase_name, left_x, 95, 1)
+        
+        self._draw_text(fb, "Illumination:", left_x, 130, 1)
+        self._draw_text(fb, f"{illumination:.1f}%", left_x, 145, 1)
+        
+        self._draw_text(fb, "Moonrise:", left_x, 180, 1)
+        self._draw_text(fb, moonrise, left_x, 195, 1)
+        
+        self._draw_text(fb, "Moonset:", left_x, 230, 1)
+        self._draw_text(fb, moonset, left_x, 245, 1)
+        
+        # RIGHT SIDE: Large moon graphic centered
+        # Center of right half: x=300, y=150
+        moon_center_x = 300
+        moon_center_y = 150
+        moon_radius = 80  # Larger radius
+        self._draw_moon_phase_graphic(fb, phase_name, moon_center_x, moon_center_y, moon_radius)
     
     def _draw_text(self, fb, text, x, y, scale=1):
         """
@@ -122,17 +137,25 @@ class DisplayManager:
         except Exception as e:
             print(f"Error drawing text: {e}")
     
-    def _draw_moon_phase_graphic(self, fb, phase_name, center_x, center_y):
+    def _draw_moon_phase_graphic(self, fb, phase_name, center_x, center_y, radius=50):
         """
         Draw a simple moon phase graphic
         For a real implementation, you'd load pre-rendered bitmaps
-        """
-        radius = 50
         
+        Args:
+            fb: framebuffer
+            phase_name: name of the moon phase
+            center_x: x coordinate of center
+            center_y: y coordinate of center
+            radius: radius of the moon circle (default 50)
+        """
         # Draw moon circle outline
         self._draw_circle(fb, center_x, center_y, radius, filled=False)
         
-        # For simplicity, we'll use text representation
+        # Draw a filled circle for the moon body
+        self._draw_circle(fb, center_x, center_y, radius - 2, filled=True)
+        
+        # For simplicity, we'll use text representation in the center
         # In production, load actual moon phase images
         phase_symbols = {
             "New Moon": "●",
@@ -146,8 +169,8 @@ class DisplayManager:
         }
         
         symbol = phase_symbols.get(phase_name, "?")
-        # This is a placeholder - actual implementation would use images
-        self._draw_text(fb, symbol, center_x - 4, center_y - 4, 3)
+        # Center the symbol (approximate)
+        self._draw_text(fb, symbol, center_x - 4, center_y - 4, 1)
     
     def _draw_circle(self, fb, x0, y0, radius, filled=False):
         """
