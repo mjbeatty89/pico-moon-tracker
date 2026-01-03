@@ -3,8 +3,8 @@ Display Manager - Handles Waveshare 4.2" e-Paper display rendering
 Requires Waveshare epd4in2 driver in lib/ directory
 """
 
-# Note: This uses Waveshare's MicroPython driver from lib/Pico_ePaper_4_2.py
-# The actual implementation will need the driver to be present
+# Note: This uses Waveshare's V2 MicroPython driver from lib/Pico_ePaper_4_2_V2.py
+# The V2 driver is newer (2023) with improved performance and bug fixes
 
 class DisplayManager:
     def __init__(self):
@@ -15,18 +15,18 @@ class DisplayManager:
         self.initialized = False
         
         try:
-            # Import Waveshare driver (must be in lib/)
+            # Import Waveshare V2 driver (must be in lib/)
             import sys
             sys.path.append('/lib')  # Ensure lib is in path
-            from Pico_ePaper_4_2 import EPD_4in2
+            from Pico_ePaper_4_2_V2 import EPD_4in2
             # Note: EPD_4in2() initializes automatically in __init__
             self.epd = EPD_4in2()
             self.initialized = True
-            print("Display initialized successfully")
+            print("Display initialized successfully (V2 driver)")
         except ImportError as ie:
-            print(f"WARNING: Pico_ePaper_4_2 driver not found: {ie}")
+            print(f"WARNING: Pico_ePaper_4_2_V2 driver not found: {ie}")
             print("Running in simulation mode.")
-            print("To use real display, ensure lib/Pico_ePaper_4_2.py exists")
+            print("To use real display, ensure lib/Pico_ePaper_4_2_V2.py exists")
             self.initialized = False
         except Exception as e:
             print(f"Display initialization error: {e}")
@@ -39,7 +39,7 @@ class DisplayManager:
             return
         
         try:
-            self.epd.EPD_4IN2_Clear()
+            self.epd.EPD_4IN2_V2_Clear()
             print("Display cleared")
         except Exception as e:
             print(f"Error clearing display: {e}")
@@ -68,7 +68,7 @@ class DisplayManager:
             self._draw_layout(self.epd.image1Gray, moon_data, location_name, last_update)
             
             # Send to display using driver's method
-            self.epd.EPD_4IN2_Display(self.epd.buffer_1Gray)
+            self.epd.EPD_4IN2_V2_Display(self.epd.buffer_1Gray)
             print("Display updated successfully")
             
         except Exception as e:
@@ -221,7 +221,7 @@ class DisplayManager:
         
         try:
             # Re-initialize the display after sleep
-            self.epd.EPD_4IN2_Init_4Gray()
+            self.epd.EPD_4IN2_V2_Init()
             print("Display awake")
         except Exception as e:
             print(f"Error waking display: {e}")
