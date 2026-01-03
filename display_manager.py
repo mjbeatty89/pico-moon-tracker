@@ -61,8 +61,9 @@ class DisplayManager:
             # Use the driver's built-in framebuffer
             import time
             
-            # Clear the built-in framebuffer
-            self.epd.image1Gray.fill(0xff)  # 0xff = white
+            # Clear the built-in framebuffer to white
+            # For MONO_HLSB: 0x00 = white, 0xff = black
+            self.epd.image1Gray.fill(0x00)  # Fill with white background
             
             # Draw content directly on the driver's framebuffer
             self._draw_layout(self.epd.image1Gray, moon_data, location_name, last_update)
@@ -114,9 +115,10 @@ class DisplayManager:
         """
         Draw text on framebuffer
         Note: MicroPython's framebuf has basic text support (8x8 font)
+        For MONO_HLSB: color 1 = black (foreground), 0 = white (background)
         """
         try:
-            fb.text(text, x, y, 1)
+            fb.text(text, x, y, 1)  # Draw black text on white background
         except Exception as e:
             print(f"Error drawing text: {e}")
     
@@ -150,6 +152,7 @@ class DisplayManager:
     def _draw_circle(self, fb, x0, y0, radius, filled=False):
         """
         Draw a circle using Bresenham's algorithm
+        Color 1 = black pixels
         """
         x = radius
         y = 0
@@ -157,12 +160,12 @@ class DisplayManager:
         
         while x >= y:
             if filled:
-                fb.hline(x0 - x, y0 + y, 2 * x, 1)
+                fb.hline(x0 - x, y0 + y, 2 * x, 1)  # Black fill
                 fb.hline(x0 - x, y0 - y, 2 * x, 1)
                 fb.hline(x0 - y, y0 + x, 2 * y, 1)
                 fb.hline(x0 - y, y0 - x, 2 * y, 1)
             else:
-                fb.pixel(x0 + x, y0 + y, 1)
+                fb.pixel(x0 + x, y0 + y, 1)  # Black outline
                 fb.pixel(x0 + y, y0 + x, 1)
                 fb.pixel(x0 - y, y0 + x, 1)
                 fb.pixel(x0 - x, y0 + y, 1)
