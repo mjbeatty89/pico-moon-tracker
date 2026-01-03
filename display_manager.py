@@ -3,7 +3,7 @@ Display Manager - Handles Waveshare 4.2" e-Paper display rendering
 Requires Waveshare epd4in2 driver in lib/ directory
 """
 
-# Note: This assumes Waveshare's MicroPython driver is in lib/epd4in2.py
+# Note: This uses Waveshare's MicroPython driver from lib/Pico_ePaper_4_2.py
 # The actual implementation will need the driver to be present
 
 class DisplayManager:
@@ -16,14 +16,17 @@ class DisplayManager:
         
         try:
             # Import Waveshare driver (must be in lib/)
-            from epd4in2 import EPD
-            self.epd = EPD()
-            self.epd.init()
+            import sys
+            sys.path.append('/lib')  # Ensure lib is in path
+            from Pico_ePaper_4_2 import EPD_4in2
+            # Note: EPD_4in2() initializes automatically in __init__
+            self.epd = EPD_4in2()
             self.initialized = True
             print("Display initialized successfully")
-        except ImportError:
-            print("WARNING: epd4in2 driver not found. Running in simulation mode.")
-            print("To use real display, copy Waveshare driver to lib/epd4in2.py")
+        except ImportError as ie:
+            print(f"WARNING: Pico_ePaper_4_2 driver not found: {ie}")
+            print("Running in simulation mode.")
+            print("To use real display, ensure lib/Pico_ePaper_4_2.py exists")
             self.initialized = False
         except Exception as e:
             print(f"Display initialization error: {e}")
@@ -36,7 +39,7 @@ class DisplayManager:
             return
         
         try:
-            self.epd.Clear()
+            self.epd.EPD_4IN2_Clear()
             print("Display cleared")
         except Exception as e:
             print(f"Error clearing display: {e}")
@@ -55,22 +58,17 @@ class DisplayManager:
             return
         
         try:
-            # Create a new image buffer
-            from framebuf import FrameBuffer, MONO_HLSB
+            # Use the driver's built-in framebuffer
             import time
             
-            # Allocate frame buffer
-            buf = bytearray(self.width * self.height // 8)
-            fb = FrameBuffer(buf, self.width, self.height, MONO_HLSB)
+            # Clear the built-in framebuffer
+            self.epd.image1Gray.fill(0xff)  # 0xff = white
             
-            # Fill with white
-            fb.fill(0)
+            # Draw content directly on the driver's framebuffer
+            self._draw_layout(self.epd.image1Gray, moon_data, location_name, last_update)
             
-            # Draw content
-            self._draw_layout(fb, moon_data, location_name, last_update)
-            
-            # Send to display
-            self.epd.display(buf)
+            # Send to display using driver's method
+            self.epd.EPD_4IN2_Display(self.epd.buffer_1Gray)
             print("Display updated successfully")
             
         except Exception as e:
@@ -210,7 +208,7 @@ class DisplayManager:
             return
         
         try:
-            self.epd.sleep()
+            self.epd.Sleep()
             print("Display sleeping")
         except Exception as e:
             print(f"Error sleeping display: {e}")
@@ -222,7 +220,8 @@ class DisplayManager:
             return
         
         try:
-            self.epd.init()
+            # Re-initialize the display after sleep
+            self.epd.EPD_4IN2_Init_4Gray()
             print("Display awake")
         except Exception as e:
             print(f"Error waking display: {e}")
