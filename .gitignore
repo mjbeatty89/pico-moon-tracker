@@ -1,0 +1,38 @@
+# Configuration with secrets
+config.py
+
+# MicroPython files
+*.pyc
+__pycache__/
+
+# Storage data files (on device)
+moon_tracker_data.json
+
+# Waveshare drivers (download separately)
+lib/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+test_output/
+*.log
+
+# Backups
+*.bak
+*.backup
+
+# Environment
+venv/
+env/
+.env
+
+# Documentation artifacts
+docs/build/
