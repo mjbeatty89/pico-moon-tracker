@@ -1,10 +1,12 @@
 """
-Display Manager - Handles Waveshare 4.2" e-Paper display rendering
+"""Display Manager - Handles Waveshare 4.2" e-Paper display rendering
 Requires Waveshare epd4in2 driver in lib/ directory
 """
 
 # Note: This uses Waveshare's V2 MicroPython driver from lib/Pico_ePaper_4_2_V2.py
 # The V2 driver is newer (2023) with improved performance and bug fixes
+
+import lunar_graphics
 
 class DisplayManager:
     def __init__(self):
@@ -78,10 +80,13 @@ class DisplayManager:
     def _draw_layout(self, fb, moon_data, location_name, last_update):
         """
         Draw the complete layout on the framebuffer
+        Matches the original Instructables Lunar Phase Tracker layout.
         
         Layout (400x300 pixels):
-        - Left half (0-200): Text information
-        - Right half (200-400): Large centered moon graphic
+        - Top: "Lunar Phase Tracker" title
+        - Left: Large moon graphic (30, 70)
+        - Right: Data blocks at x=220
+        - Bottom: Phase name and time
         """
         import time
         
@@ -91,40 +96,49 @@ class DisplayManager:
         moonrise = moon_data.get('moonrise', 'N/A')
         moonset = moon_data.get('moonset', 'N/A')
         
-        # Format current date
+        # Format current time
         current_time = time.localtime(last_update)
-        date_str = f"{current_time[1]:02d}/{current_time[2]:02d}/{current_time[0]}"
         time_str = f"{current_time[3]:02d}:{current_time[4]:02d}"
         
-        # LEFT SIDE: Text information
-        left_x = 10
+        # Draw title at top
+        title = "Lunar Phase Tracker"
+        title_x = (400 - len(title) * 8) // 2
+        self._draw_text(fb, title, title_x, 5, 1)
         
-        # Location at top
-        self._draw_text(fb, location_name, left_x, 10, 1)
+        # Draw moon graphic on left at (30, 70)
+        self._draw_moon_bitmap(fb, phase_name, 30, 70)
         
-        # Date and time
-        self._draw_text(fb, date_str, left_x, 30, 1)
-        self._draw_text(fb, time_str, left_x, 45, 1)
+        # Draw data blocks on right side starting at x=220
+        right_x = 220
         
-        # Moon phase information
-        self._draw_text(fb, "Phase:", left_x, 80, 1)
-        self._draw_text(fb, phase_name, left_x, 95, 1)
+        # Age block (not available in current API, placeholder)
+        self._draw_text(fb, "Age:", right_x, 45, 1)
+        self._draw_text(fb, "N/A", right_x, 65, 1)
         
-        self._draw_text(fb, "Illumination:", left_x, 130, 1)
-        self._draw_text(fb, f"{illumination:.1f}%", left_x, 145, 1)
+        # Illumination block
+        self._draw_text(fb, "Illumination:", right_x, 95, 1)
+        self._draw_text(fb, f"{illumination:.1f}%", right_x, 115, 1)
         
-        self._draw_text(fb, "Moonrise:", left_x, 180, 1)
-        self._draw_text(fb, moonrise, left_x, 195, 1)
+        # Hemisphere block
+        self._draw_text(fb, "Hemisphere:", right_x, 145, 1)
+        self._draw_text(fb, "North", right_x, 165, 1)
         
-        self._draw_text(fb, "Moonset:", left_x, 230, 1)
-        self._draw_text(fb, moonset, left_x, 245, 1)
+        # Moon Rise block
+        self._draw_text(fb, "Moon Rise:", right_x, 195, 1)
+        self._draw_text(fb, moonrise, right_x, 215, 1)
         
-        # RIGHT SIDE: Large moon graphic centered
-        # Center of right half: x=300, y=150
-        moon_center_x = 300
-        moon_center_y = 150
-        moon_radius = 80  # Larger radius
-        self._draw_moon_phase_graphic(fb, phase_name, moon_center_x, moon_center_y, moon_radius)
+        # Moon Set block
+        self._draw_text(fb, "Moon Set:", right_x, 245, 1)
+        self._draw_text(fb, moonset, right_x, 265, 1)
+        
+        # Draw phase name and time at bottom left
+        # Center phase name in left area (0-220)
+        phase_x = (220 - len(phase_name) * 8) // 2
+        self._draw_text(fb, phase_name, phase_x, 245, 1)
+        
+        # Center time below phase
+        time_x = (220 - len(time_str) * 8) // 2
+        self._draw_text(fb, time_str, time_x, 270, 1)
     
     def _draw_text(self, fb, text, x, y, scale=1):
         """
@@ -136,6 +150,33 @@ class DisplayManager:
             fb.text(text, x, y, 1)  # Draw black text on white background
         except Exception as e:
             print(f"Error drawing text: {e}")
+    
+    def _draw_moon_bitmap(self, fb, phase_name, x_pos, y_pos):
+        """
+        Draw moon phase bitmap using lunar_graphics module.
+        
+        Args:
+            fb: target framebuffer (400x300)
+            phase_name: moon phase name
+            x_pos, y_pos: top-left corner position
+        """
+        try:
+            # Render the moon phase graphic (155x152)
+            moon_fb, moon_buffer = lunar_graphics.render_moon_phase(phase_name)
+            
+            # Copy moon graphic pixel-by-pixel to main framebuffer
+            # This is necessary because MicroPython's framebuf.blit has limited support
+            for dy in range(152):
+                for dx in range(155):
+                    pixel = moon_fb.pixel(dx, dy)
+                    if pixel:  # If pixel is set (black)
+                        fb.pixel(x_pos + dx, y_pos + dy, 1)
+            
+            print(f"Drew moon bitmap: {phase_name}")
+        except Exception as e:
+            print(f"Error drawing moon bitmap: {e}")
+            # Fallback to simple circle if bitmap fails
+            self._draw_moon_phase_graphic(fb, phase_name, x_pos + 77, y_pos + 76, 60)
     
     def _draw_moon_phase_graphic(self, fb, phase_name, center_x, center_y, radius=50):
         """
